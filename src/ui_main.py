@@ -1,41 +1,42 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel
-import pyqtgraph as pg
-import sys
+import streamlit as st
+import numpy as np
+import matplotlib.pyplot as plt
 
 from src.data_loader import load_mock_breathing_data
-from src.signal_processing import bandpass_filter, estimate_breathing_rate
+from src.signal_processing import bandpass_filter, calculate_bpm
 
-class BreathUI(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Breathing Monitor")
-        self.resize(600, 400)
+st.set_page_config(page_title="Breath Monitor", layout="centered")
 
-        # 创建界面布局
-        layout = QVBoxLayout()
-        self.setLayout(layout)
+# Sidebar
+st.sidebar.title("Settings")
+duration = st.sidebar.slider("Duration (sec)", 5, 20, 10)
 
-        # 呼吸频率标签
-        self.label = QLabel("Breathing Rate: -- bpm")
-        layout.addWidget(self.label)
+# Load and process data
+t, raw = load_mock_breathing_data(duration_sec=duration)
+filtered = bandpass_filter(raw)
+bpm = calculate_bpm(filtered)
 
-        # 波形图区域
-        self.plot = pg.PlotWidget()
-        layout.addWidget(self.plot)
+# Main interface
+st.title("🫁 Breath Monitoring Dashboard")
 
-        # 加载数据并显示
-        self.plot_breath_data()
+col1, col2 = st.columns(2)
+col1.metric("Breaths per Minute (BPM)", f"{bpm:.2f}")
+col2.metric("Duration", f"{duration} sec")
 
-    def plot_breath_data(self):
-        raw = load_mock_breathing_data()
-        filtered = bandpass_filter(raw)
-        bpm = estimate_breathing_rate(filtered)
+st.subheader("Breathing Signal")
+fig, ax = plt.subplots()
+ax.plot(t, filtered, label="Filtered")
+ax.plot(t, raw, alpha=0.3, label="Raw")
+ax.set_xlabel("Time (s)")
+ax.set_ylabel("Amplitude")
+ax.legend()
+st.pyplot(fig)
 
-        self.label.setText(f"Breathing Rate: {bpm:.2f} bpm")
-        self.plot.plot(filtered, pen='g')
+# Save button
+if st.button("💾 Save to data/sample_data.npy"):
+    np.save("data/sample_data.npy", filtered)
+    st.success("Saved!")
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    ui = BreathUI()
-    ui.show()
-    sys.exit(app.exec_())
+# Refresh button
+if st.button("🔄 Refresh"):
+    st.rerun()
