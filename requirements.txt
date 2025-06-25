@@ -36,3 +36,6 @@ typing_extensions==4.14.0
 tzdata==2025.2
 urllib3==2.5.0
 matplotlib==3.9.4
+
+# Add Acconeer A121 SDK from GitHub
+# git+https://github.com/acconeer/acconeer-python-exploration.git
